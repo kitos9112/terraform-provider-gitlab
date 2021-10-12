@@ -2,7 +2,7 @@
 
 This resource allows you to protect a specific branch by an access level so that the user with less access level cannot Merge/Push to the branch.
 
--> The `allowed_to_push`, `allowed_to_merge` and `code_owner_approval_required` arguments require a GitLab Premium account or above.
+-> The `allowed_to_push`, `allowed_to_merge` and `code_owner_approval_required` arguments require a GitLab Premium account or above.  Please refer to [Gitlab API documentation](https://docs.gitlab.com/ee/api/protected_branches.html) for further information.
 
 ## Example Usage
 
@@ -24,6 +24,24 @@ resource "gitlab_branch_protection" "BranchProtect" {
   }
   allowed_to_merge {
     user_id = 37
+  }
+}
+```
+
+### Example using dynamic block
+
+```hcl
+resource "gitlab_branch_protection" "main" {
+  project                      = "12345"
+  branch                       = "main"
+  push_access_level            = "maintainer"
+  merge_access_level           = "maintainer"
+
+  dynamic "allowed_to_push" {
+    for_each = [50, 55, 60]
+    content {
+      user_id = allowed_to_push.value
+    }
   }
 }
 ```
@@ -56,11 +74,13 @@ An `allowed_to_push` or `allowed_to_merge` block supports the following argument
 
 The following attributes are exported:
 
+* `branch_protection_id` - The ID of the branch protection (not the branch name).
+
 * The `allowed_to_push` and `allowed_to_merge` blocks export the `access_level_description` field, which contains a textual description of the access level, user or group allowed to perform the relevant action.
 
 ## Import
 
-GitLab project freeze periods can be imported using an id made up of `project_id:branch`, e.g.
+Gitlab protected branches can be imported with a key composed of `<project_id>:<branch>`, e.g.
 
 ```
 $ terraform import gitlab_branch_protection.BranchProtect "12345:main"

@@ -28,6 +28,7 @@ func TestAccGitlabBranchProtection_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGitlabBranchProtectionExists("gitlab_branch_protection.branch_protect", &pb),
 					testAccCheckGitlabBranchProtectionPersistsInStateCorrectly("gitlab_branch_protection.branch_protect", &pb),
+					testAccCheckGitlabBranchProtectionComputedAttributes("gitlab_branch_protection.branch_protect", &pb),
 					testAccCheckGitlabBranchProtectionAttributes(&pb, &testAccGitlabBranchProtectionExpectedAttributes{
 						Name:             fmt.Sprintf("BranchProtect-%d", rInt),
 						PushAccessLevel:  accessLevel[gitlab.DeveloperPermissions],
@@ -292,6 +293,12 @@ func testAccCheckGitlabBranchProtectionExists(n string, pb *gitlab.ProtectedBran
 	}
 }
 
+func testAccCheckGitlabBranchProtectionComputedAttributes(n string, pb *gitlab.ProtectedBranch) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		return resource.TestCheckResourceAttr(n, "branch_protection_id", strconv.Itoa(pb.ID))(s)
+	}
+}
+
 type testAccGitlabBranchProtectionExpectedAttributes struct {
 	Name                      string
 	PushAccessLevel           string
@@ -348,7 +355,7 @@ func testAccCheckGitlabBranchProtectionAttributes(pb *gitlab.ProtectedBranch, wa
 		}
 		remainingWantedGroupIDsAllowedToPush := map[int]struct{}{}
 		for _, v := range want.GroupsAllowedToPush {
-			group, _, err := conn.Groups.GetGroup(v)
+			group, _, err := conn.Groups.GetGroup(v, nil)
 			if err != nil {
 				return fmt.Errorf("error looking up group by path %v: %v", v, err)
 			}
